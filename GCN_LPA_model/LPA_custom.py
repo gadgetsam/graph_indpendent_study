@@ -53,7 +53,7 @@ class LPA_custom(MessagePassing):
         # res = (1 - self.alpha) * out
 
         for _ in range(self.num_layers):
-            out[mask] = y[mask]
+            # out[mask] = y[mask]
 
             # propagate_type: (y: Tensor, edge_weight: OptTensor)
             out = self.propagate(edge_index, x=out, edge_weight=edge_weight,

@@ -17,10 +17,11 @@ class Net(torch.nn.Module):
         self.conv1 = GCNConv_custom(dataset.num_node_features, 32)
         self.conv2 = GCNConv_custom(32, 32)
         self.conv3 = GCNConv_custom(32, 32)
-        self.conv4 = GCNConv_custom(32, dataset.num_classes)
+        self.conv4 = GCNConv_custom(32, 32)
+        self.conv5 = GCNConv_custom(32, dataset.num_classes)
         self.weights_layer = Parameter(torch.ones(num_edges))#torch.nn.Linear(1, num_edges, bias=False)
 
-        self.lpa = LPA_custom(5)
+        self.lpa = LPA_custom(3)
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
         edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
@@ -37,15 +38,20 @@ class Net(torch.nn.Module):
 
         x = self.conv1(x, edge_index, edge_weight)
         x = F.relu(x)
-        x = F.dropout(x, training=self.training)
+        x = F.dropout(x, training=self.training, p=.5)
         x = self.conv2(x, edge_index, edge_weight)
         x = F.relu(x)
-        x = F.dropout(x, training=self.training)
-        x = self.conv3(x, edge_index, edge_weight)
-        x = F.relu(x)
-        x = F.dropout(x, training=self.training)
 
-        x = self.conv4(x, edge_index, edge_weight)
+        x = F.dropout(x, training=self.training, p=.5)
+        # x = self.conv3(x, edge_index, edge_weight)
+        # x = F.relu(x)
+        # x = F.dropout(x, training=self.training, p=.5)
+
+        # x = self.conv4(x, edge_index, edge_weight)
+        # x = F.relu(x)
+        # x = F.dropout(x, training=self.training, p=.5)
+
+        x = self.conv5(x, edge_index, edge_weight)
 
         x_2=self.lpa(data.y, edge_index, data.train_mask, edge_weight)
         return F.log_softmax(x, dim=1), F.log_softmax(x_2, dim=1)
@@ -54,7 +60,7 @@ class Net(torch.nn.Module):
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = Net(num_edges=13264).to(device)
 data = dataset[0].to(device)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.05, weight_decay=1e-4)
 
 model.train()
 for epoch in range(200):
@@ -67,6 +73,10 @@ for epoch in range(200):
 model.eval()
 _, pred = model(data)[0].max(dim=1)
 print(data.train_mask.sum(),data.test_mask.sum(),data.val_mask.sum())
+correct = int(pred[data.train_mask].eq(data.y[data.train_mask]).sum().item())
+
+acc = correct / int(data.train_mask.sum())
+print('Accuracy: {:.4f}'.format(acc))
 correct = int(pred[data.test_mask].eq(data.y[data.test_mask]).sum().item())
 
 acc = correct / int(data.test_mask.sum())
