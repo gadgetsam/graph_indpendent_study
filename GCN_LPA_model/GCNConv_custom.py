@@ -6,7 +6,7 @@ from torch_sparse import SparseTensor, matmul
 class GCNConv_custom(MessagePassing):
     def __init__(self, in_channels, out_channels):
         super(GCNConv_custom, self).__init__(aggr='add')  # "Add" aggregation (Step 5).
-        self.lin = torch.nn.Linear(in_channels, out_channels)
+        self.lin = torch.nn.Linear(in_channels, out_channels, bias=False)
 
     def forward(self, x, edge_index, edge_weights):
         # x has shape [N, in_channels]
